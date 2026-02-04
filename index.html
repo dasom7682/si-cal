@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>조경석 차액 계산기 (차액 부가세별도)</title>
+  <style>
+    :root { --bg:#0b1220; --card:#111a2e; --muted:#9fb0d0; --text:#eaf0ff; --line:#223154; }
+    * { box-sizing:border-box; }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif;
+      background: linear-gradient(180deg, #070b14, #0b1220);
+      color: var(--text);
+    }
+    .wrap{ max-width: 900px; margin: 0 auto; padding: 18px; }
+    h1{ margin:0; font-size: 22px; letter-spacing:-0.3px; }
+    .sub{ color:var(--muted); font-size:13px; margin-top:6px; line-height:1.55; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
+    @media(min-width:860px){ .grid{ grid-template-columns: 1fr 1fr; } }
+    .card{
+      background: rgba(17,26,46,.85);
+      border: 1px solid rgba(34,49,84,.8);
+      border-radius: 14px; padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(6px);
+    }
+    .card h2{ font-size: 15px; margin:0 0 10px; color:#cfe0ff; }
+    .field{
+      border:1px solid rgba(34,49,84,.9);
+      background: rgba(10,16,30,.65);
+      border-radius: 12px; padding: 10px 10px 8px;
+      margin-bottom: 10px;
+    }
+    label{ display:flex; justify-content:space-between; gap:10px; font-size:12px; color: var(--muted); }
+    input{
+      width:100%; margin-top:6px;
+      background: transparent; border: none; outline: none;
+      color: var(--text); font-size: 18px; font-weight: 650;
+      letter-spacing: 0.2px;
+    }
+    input::placeholder{ color: rgba(159,176,208,.45); font-weight:500; }
+    .hint{ margin-top:6px; font-size:11px; color: rgba(159,176,208,.8); line-height:1.4; }
+    .results{
+      display:grid; grid-template-columns: 1fr; gap:10px;
+    }
+    @media(min-width:860px){ .results{ grid-template-columns: 1fr 1fr; } }
+    .kpi{
+      border:1px solid rgba(34,49,84,.9);
+      background: rgba(10,16,30,.55);
+      border-radius: 12px; padding: 12px;
+    }
+    .kpi .k{ font-size:12px; color: var(--muted); }
+    .kpi .v{ margin-top:6px; font-size:20px; font-weight:800; letter-spacing:-0.2px; }
+    .kpi .v.positive{ color:#7CFFB2; }
+    .kpi .v.negative{ color:#FF7C9C; }
+    .kpi .s{ margin-top:6px; font-size:11px; color: rgba(159,176,208,.85); line-height:1.4; }
+    .bar{ height:1px; background: rgba(34,49,84,.9); margin:12px 0; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+    button{
+      border: 1px solid rgba(34,49,84,.9);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 12px; padding: 10px 12px;
+      cursor:pointer; font-weight:700;
+    }
+    button:hover{ background: rgba(255,255,255,.10); }
+    .tiny{ font-size:12px; color: var(--muted); }
+    .footer{ margin-top:14px; color: rgba(159,176,208,.75); font-size:12px; line-height:1.55; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>조경석 차액 계산기</h1>
+    <div class="sub">
+      • 조경석 단가(입력): <b>부가세 포함</b> / <b>톤당</b><br/>
+      • 돌값·운반비(입력): <b>부가세 별도</b> / <b>1대당</b><br/>
+      • 차량대수: <b>올림(ceil)</b> 적용 → 실제 대수 기준 원가 계산<br/>
+      • <b>1톤당 차액/총 차액은 “부가세 별도(공급가)”</b>로 계산/표시<br/>
+      • 금액(원)은 모두 <b>10원 단위 버림</b>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>입력</h2>
+
+        <div class="field">
+          <label>조경석 단가(판매) <span>원/톤 (부가세 포함)</span></label>
+          <input id="sellPerTonInc" type="text" inputmode="numeric" placeholder="예: 85,000" />
+          <div class="hint">※ 차액은 부가세 별도로 계산하므로 내부적으로 공급가(÷1.1)로 환산합니다.</div>
+        </div>
+
+        <div class="field">
+          <label>돌값(매입) <span>원/대 (부가세 별도)</span></label>
+          <input id="stonePerTruckEx" type="text" inputmode="numeric" placeholder="예: 1,200,000" />
+        </div>
+
+        <div class="field">
+          <label>운반비 <span>원/대 (부가세 별도)</span></label>
+          <input id="freightPerTruckEx" type="text" inputmode="numeric" placeholder="예: 250,000" />
+        </div>
+
+        <div class="field">
+          <label>1대당 톤수 <span>톤/대</span></label>
+          <input id="tonsPerTruck" type="text" inputmode="decimal" placeholder="예: 15" />
+        </div>
+
+        <div class="field">
+          <label>전체 톤수 <span>톤</span></label>
+          <input id="totalTons" type="text" inputmode="decimal" placeholder="예: 120" />
+        </div>
+
+        <div class="actions">
+          <button id="saveBtn">현재값 저장</button>
+          <button id="resetBtn">초기화</button>
+          <button id="copyBtn">결과 복사</button>
+          <span class="tiny" id="saveState"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>결과</h2>
+
+        <div class="results">
+          <div class="kpi" style="grid-column:1/-1;">
+            <div class="k">차량대수(올림) / 이론대수(참고)</div>
+            <div class="v" id="truckCounts">-</div>
+            <div class="s">원가(돌값·운반비)는 “올림 차량대수” 기준으로 계산됩니다.</div>
+          </div>
+
+          <div class="kpi">
+            <div class="k">1톤당 차액 (부가세 별도)</div>
+            <div class="v" id="diffPerTonEx">-</div>
+            <div class="s">총 차액(부가세 별도) ÷ 전체 톤수</div>
+          </div>
+
+          <div class="kpi">
+            <div class="k">1톤당 차액 % (부가세 별도 기준)</div>
+            <div class="v" id="pctPerTonEx">-</div>
+            <div class="s">1톤당 차액(별도) ÷ 판매단가(별도) × 100</div>
+          </div>
+
+          <div class="kpi">
+            <div class="k">총 차액 (부가세 별도)</div>
+            <div class="v" id="totalDiffEx">-</div>
+            <div class="s">총 매출(별도) - 총 원가(별도)</div>
+          </div>
+
+          <div class="kpi">
+            <div class="k">총 차액 % (부가세 별도 기준)</div>
+            <div class="v" id="totalPctEx">-</div>
+            <div class="s">총 차액(별도) ÷ 총 매출(별도) × 100</div>
+          </div>
+
+          <div class="kpi" style="grid-column:1/-1;">
+            <div class="k">참고: 총 매출액</div>
+            <div class="v" id="totalRevenuePair">-</div>
+            <div class="s">부가세별도(공급가) / 부가세포함</div>
+          </div>
+
+          <div class="kpi" style="grid-column:1/-1;">
+            <div class="k">참고: 총 원가</div>
+            <div class="v" id="totalCostPair">-</div>
+            <div class="s">부가세별도(공급가) / 부가세포함</div>
+          </div>
+        </div>
+
+        <div class="bar"></div>
+
+        <div class="footer">
+          • 판매단가 입력은 부가세 포함이므로, 차액(부가세 별도) 계산을 위해 <b>판매 공급가 = 판매단가 ÷ 1.1</b>로 환산합니다.<br/>
+          • 돌값/운반비는 원래 부가세 별도 입력이므로, 총원가(부가세 포함)는 <b>총원가(별도) × 1.1</b>로 표시합니다.<br/>
+          • 모든 금액은 <b>10원 단위 버림</b>으로 표시됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      sellPerTonInc: $("sellPerTonInc"),
+      stonePerTruckEx: $("stonePerTruckEx"),
+      freightPerTruckEx: $("freightPerTruckEx"),
+      tonsPerTruck: $("tonsPerTruck"),
+      totalTons: $("totalTons"),
+
+      truckCounts: $("truckCounts"),
+      diffPerTonEx: $("diffPerTonEx"),
+      pctPerTonEx: $("pctPerTonEx"),
+      totalDiffEx: $("totalDiffEx"),
+      totalPctEx: $("totalPctEx"),
+      totalRevenuePair: $("totalRevenuePair"),
+      totalCostPair: $("totalCostPair"),
+
+      saveBtn: $("saveBtn"),
+      resetBtn: $("resetBtn"),
+      copyBtn: $("copyBtn"),
+      saveState: $("saveState"),
+    };
+
+    // ---------- 입력 콤마 처리 ----------
+    function uncomma(str){
+      return String(str || "").replace(/,/g, "").trim();
+    }
+
+    // 숫자만 남기기(정수용)
+    function onlyDigits(str){
+      return uncomma(str).replace(/[^\d]/g, "");
+    }
+
+    // 소수 허용(톤수용)
+    function onlyDecimal(str){
+      str = uncomma(str).replace(/[^\d.]/g, "");
+      // 점(.)은 하나만 허용
+      const parts = str.split(".");
+      if (parts.length <= 1) return str;
+      return parts[0] + "." + parts.slice(1).join("");
+    }
+
+    // 정수에 천단위 콤마
+    function formatCommaInt(strDigits){
+      if (!strDigits) return "";
+      // 앞의 0 정리(단, "0"은 유지)
+      strDigits = strDigits.replace(/^0+(?=\d)/, "");
+      return Number(strDigits).toLocaleString("ko-KR");
+    }
+
+    // 소수에 천단위 콤마(정수부만)
+    function formatCommaDecimal(strDec){
+      if (!strDec) return "";
+      const [i, d] = strDec.split(".");
+      const ii = i ? Number(i).toLocaleString("ko-KR") : "";
+      if (d === undefined) return ii;
+      return ii + "." + d; // 소수부는 입력 그대로 유지
+    }
+
+    // input 이벤트에서 커서 튀는 문제를 최소화: 끝으로 보내는 간단 방식(업무용으로는 충분히 실용적)
+    function setValueAndMoveEnd(el, v){
+      el.value = v;
+      try { el.setSelectionRange(v.length, v.length); } catch(e) {}
+    }
+
+    function bindCommaInt(el){
+      el.addEventListener("input", () => {
+        const digits = onlyDigits(el.value);
+        const formatted = digits ? formatCommaInt(digits) : "";
+        setValueAndMoveEnd(el, formatted);
+        calc();
+      });
+    }
+
+    function bindCommaDecimal(el){
+      el.addEventListener("input", () => {
+        const dec = onlyDecimal(el.value);
+        const formatted = dec ? formatCommaDecimal(dec) : "";
+        setValueAndMoveEnd(el, formatted);
+        calc();
+      });
+    }
+
+    // 숫자 변환(콤마 제거 후)
+    function n(v){ return Number(uncomma(v) || 0); }
+
+    // ---------- 표시 포맷 ----------
+    function floor10Won(x){
+      if (!isFinite(x)) return NaN;
+      return Math.floor(x / 10) * 10;
+    }
+    function fmtMoney(v){
+      if (!isFinite(v)) return "-";
+      return floor10Won(v).toLocaleString("ko-KR") + "원";
+    }
+
+    // 퍼센트 0.1% 단위 버림
+    function floorPct1dp(p){
+      if (!isFinite(p)) return NaN;
+      return Math.floor(p * 10) / 10;
+    }
+    function fmtPct(v){ // v: 0~1
+      if (!isFinite(v)) return "-";
+      return floorPct1dp(v * 100).toFixed(1) + "%";
+    }
+
+    // ---------- 계산 ----------
+    function calc(){
+      const sellPerTonInc = n(els.sellPerTonInc.value);          // VAT included, per ton
+      const stonePerTruckEx = n(els.stonePerTruckEx.value);      // VAT excluded, per truck
+      const freightPerTruckEx = n(els.freightPerTruckEx.value);  // VAT excluded, per truck
+      const tonsPerTruck = n(els.tonsPerTruck.value);
+      const totalTons = n(els.totalTons.value);
+
+      const canCompute = sellPerTonInc > 0 && tonsPerTruck > 0 && totalTons > 0;
+
+      const theoreticalTrucks = (tonsPerTruck > 0) ? (totalTons / tonsPerTruck) : NaN;
+      const actualTrucks = (tonsPerTruck > 0) ? Math.ceil(theoreticalTrucks) : NaN;
+
+      // 판매 공급가(부가세 별도) 환산
+      const sellPerTonEx = sellPerTonInc / 1.10;
+
+      // 총매출
+      const totalRevenueInc = (canCompute) ? (sellPerTonInc * totalTons) : NaN;
+      const totalRevenueEx  = (canCompute) ? (sellPerTonEx  * totalTons) : NaN;
+
+      // 총원가(별도): (돌값+운반비) × 올림대수
+      const costPerTruckEx = stonePerTruckEx + freightPerTruckEx;
+      const totalCostEx = (canCompute) ? (costPerTruckEx * actualTrucks) : NaN;
+      const totalCostInc = (canCompute) ? (totalCostEx * 1.10) : NaN;
+
+      // 차액(부가세 별도)
+      const totalDiffEx = (canCompute) ? (totalRevenueEx - totalCostEx) : NaN;
+      const diffPerTonEx = (canCompute) ? (totalDiffEx / totalTons) : NaN;
+
+      // % (부가세 별도 기준)
+      const pctPerTonEx = (canCompute && sellPerTonEx !== 0) ? (diffPerTonEx / sellPerTonEx) : NaN;
+      const totalPctEx  = (canCompute && totalRevenueEx !== 0) ? (totalDiffEx / totalRevenueEx) : NaN;
+
+      // 차량대수 표시
+      if (isFinite(actualTrucks) && isFinite(theoreticalTrucks)) {
+        els.truckCounts.textContent = `${actualTrucks}대 / ${theoreticalTrucks.toFixed(3)}대`;
+      } else {
+        els.truckCounts.textContent = "-";
+      }
+
+      // 결과 표시
+      els.diffPerTonEx.textContent = fmtMoney(diffPerTonEx);
+      els.diffPerTonEx.classList.toggle("positive", isFinite(diffPerTonEx) && diffPerTonEx >= 0);
+      els.diffPerTonEx.classList.toggle("negative", isFinite(diffPerTonEx) && diffPerTonEx < 0);
+
+      els.pctPerTonEx.textContent = fmtPct(pctPerTonEx);
+
+      els.totalDiffEx.textContent = fmtMoney(totalDiffEx);
+      els.totalDiffEx.classList.toggle("positive", isFinite(totalDiffEx) && totalDiffEx >= 0);
+      els.totalDiffEx.classList.toggle("negative", isFinite(totalDiffEx) && totalDiffEx < 0);
+
+      els.totalPctEx.textContent = fmtPct(totalPctEx);
+
+      els.totalRevenuePair.textContent = `${fmtMoney(totalRevenueEx)} (부가세별도)  /  ${fmtMoney(totalRevenueInc)} (부가세포함)`;
+      els.totalCostPair.textContent    = `${fmtMoney(totalCostEx)} (부가세별도)  /  ${fmtMoney(totalCostInc)} (부가세포함)`;
+    }
+
+    // ---------- 저장/로드 ----------
+    function save(){
+      const payload = {
+        sellPerTonInc: els.sellPerTonInc.value,
+        stonePerTruckEx: els.stonePerTruckEx.value,
+        freightPerTruckEx: els.freightPerTruckEx.value,
+        tonsPerTruck: els.tonsPerTruck.value,
+        totalTons: els.totalTons.value,
+        savedAt: Date.now()
+      };
+      localStorage.setItem("landscape_stone_calc_v5", JSON.stringify(payload));
+      els.saveState.textContent = "저장됨";
+      setTimeout(()=> els.saveState.textContent = "", 1500);
+    }
+
+    function load(){
+      const raw = localStorage.getItem("landscape_stone_calc_v5");
+      if(!raw) return;
+      try{
+        const d = JSON.parse(raw);
+        els.sellPerTonInc.value = d.sellPerTonInc ?? "";
+        els.stonePerTruckEx.value = d.stonePerTruckEx ?? "";
+        els.freightPerTruckEx.value = d.freightPerTruckEx ?? "";
+        els.tonsPerTruck.value = d.tonsPerTruck ?? "";
+        els.totalTons.value = d.totalTons ?? "";
+      }catch(e){}
+    }
+
+    function reset(){
+      els.sellPerTonInc.value = "";
+      els.stonePerTruckEx.value = "";
+      els.freightPerTruckEx.value = "";
+      els.tonsPerTruck.value = "";
+      els.totalTons.value = "";
+      localStorage.removeItem("landscape_stone_calc_v5");
+      calc();
+      els.saveState.textContent = "초기화 완료";
+      setTimeout(()=> els.saveState.textContent = "", 1500);
+    }
+
+    async function copyResult(){
+      const lines = [
+        `조경석 단가(부가세 포함, 원/톤): ${els.sellPerTonInc.value || 0}`,
+        `돌값(부가세 별도, 원/대): ${els.stonePerTruckEx.value || 0}`,
+        `운반비(부가세 별도, 원/대): ${els.freightPerTruckEx.value || 0}`,
+        `1대당 톤수(톤/대): ${els.tonsPerTruck.value || 0}`,
+        `전체 톤수(톤): ${els.totalTons.value || 0}`,
+        `---`,
+        `차량대수(올림)/이론대수: ${els.truckCounts.textContent}`,
+        `1톤당 차액(부가세 별도): ${els.diffPerTonEx.textContent}`,
+        `1톤당 차액%(부가세 별도 기준): ${els.pctPerTonEx.textContent}`,
+        `총 차액(부가세 별도): ${els.totalDiffEx.textContent}`,
+        `총 차액%(부가세 별도 기준): ${els.totalPctEx.textContent}`,
+        `총 매출: ${els.totalRevenuePair.textContent}`,
+        `총 원가: ${els.totalCostPair.textContent}`,
+        `(금액 10원 단위 버림)`
+      ].join("\n");
+
+      try{
+        await navigator.clipboard.writeText(lines);
+        els.saveState.textContent = "결과 복사됨";
+      }catch(e){
+        const ta = document.createElement("textarea");
+        ta.value = lines;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        els.saveState.textContent = "결과 복사됨";
+      }
+      setTimeout(()=> els.saveState.textContent = "", 1500);
+    }
+
+    // ---------- 이벤트 바인딩 ----------
+    // 금액 입력(정수) = 콤마
+    bindCommaInt(els.sellPerTonInc);
+    bindCommaInt(els.stonePerTruckEx);
+    bindCommaInt(els.freightPerTruckEx);
+
+    // 톤수 입력(소수 가능) = 정수부만 콤마
+    bindCommaDecimal(els.tonsPerTruck);
+    bindCommaDecimal(els.totalTons);
+
+    els.saveBtn.addEventListener("click", save);
+    els.resetBtn.addEventListener("click", reset);
+    els.copyBtn.addEventListener("click", copyResult);
+
+    // 로드 후에도 형식 맞추기
+    load();
+    // 로드 값도 한 번 포맷 정리
+    ["sellPerTonInc","stonePerTruckEx","freightPerTruckEx"].forEach(k=>{
+      const el = els[k];
+      const digits = onlyDigits(el.value);
+      el.value = digits ? formatCommaInt(digits) : "";
+    });
+    ["tonsPerTruck","totalTons"].forEach(k=>{
+      const el = els[k];
+      const dec = onlyDecimal(el.value);
+      el.value = dec ? formatCommaDecimal(dec) : "";
+    });
+
+    calc();
+  </script>
+</body>
+</html>
